@@ -26,6 +26,7 @@ export interface NearestPointOnLine extends Feature<Point> {
  * @param {Geometry|Feature<Point>|number[]} pt point to snap from
  * @param {Object} [options={}] Optional parameters
  * @param {string} [options.units='kilometers'] can be degrees, radians, miles, or kilometers
+ * @param {number} [options.distThreshold] for performance, stop scanning line segments and return if distance away is less than threshold (uses `units`)
  * @returns {Feature<Point>} closest point on the `line` to `point`. The properties object will contain three values: `index`: closest point was found on nth line part, `dist`: distance between pt and the closest point, `location`: distance along the line between start and the closest point.
  * @example
  * var line = turf.lineString([
@@ -47,7 +48,10 @@ export interface NearestPointOnLine extends Feature<Point> {
 function nearestPointOnLine<G extends LineString|MultiLineString>(
     lines: Feature<G> | G,
     pt: Coord,
-    options: {units?: Units} = {}
+    options: {
+        units?: Units,
+        distThreshold?: number
+    } = {}
 ): NearestPointOnLine {
     let closestPt: any = point([Infinity, Infinity], {
         dist: Infinity
@@ -95,6 +99,9 @@ function nearestPointOnLine<G extends LineString|MultiLineString>(
             if (intersectPt && intersectPt.properties.dist < closestPt.properties.dist) {
                 closestPt = intersectPt;
                 closestPt.properties.index = i;
+            }
+            if (options.distThreshold && closestPt.properties.dist <= options.distThreshold) {
+                break;
             }
             // update length
             length += sectionLength;
